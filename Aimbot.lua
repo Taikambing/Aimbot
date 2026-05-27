@@ -320,7 +320,7 @@ local function createAdvancedSlider(parent, titleText, minVal, maxVal, defaultVa
     end)
 end
 -- =============================================================================
--- [RENDER THE INTERACTIVE UI CONTROLS]
+-- [RENDER THE INTERACTIVE UI CONTROLS & CONFIG MANAGER]
 -- =============================================================================
 local headAIM = Instance.new("TextLabel", ContentFrame)
 headAIM.Size = UDim2.new(1, 0, 0, 20)
@@ -353,6 +353,122 @@ createToggle(ContentFrame, "Enable Center Snap Tracers", "ESP_Tracers")
 createToggle(ContentFrame, "Enable Wall-Hack See Through Chams", "ESP_Chams")
 
 createAdvancedSlider(ContentFrame, "Max Sensor Rendering Limit", 100, 3000, _G.ESP_MaxDistance, false, function(v) _G.ESP_MaxDistance = v end)
+
+local headSYSTEM = Instance.new("TextLabel", ContentFrame)
+headSYSTEM.Size = UDim2.new(1, 0, 0, 20)
+headSYSTEM.Text = "--- CONFIGURATION MANAGER ---"
+headSYSTEM.TextColor3 = Color3.fromRGB(120, 120, 120)
+headSYSTEM.Font = Enum.Font.SourceSansBold
+headSYSTEM.TextSize = 12
+headSYSTEM.BackgroundTransparency = 1
+
+-- Container for the buttons
+local ConfigActionFrame = Instance.new("Frame")
+ConfigActionFrame.Size = UDim2.new(1, -5, 0, 45)
+ConfigActionFrame.BackgroundTransparency = 1
+ConfigActionFrame.Parent = ContentFrame
+
+local SaveBtn = Instance.new("TextButton")
+SaveBtn.Size = UDim2.new(0.46, 0, 0, 35)
+SaveBtn.Position = UDim2.new(0, 0, 0, 5)
+SaveBtn.BackgroundColor3 = Color3.fromRGB(40, 140, 240)
+SaveBtn.Text = "SAVE CONFIG"
+SaveBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+SaveBtn.Font = Enum.Font.SourceSansBold
+SaveBtn.TextSize = 12
+SaveBtn.Parent = ConfigActionFrame
+Instance.new("UICorner", SaveBtn).CornerRadius = UDim.new(0, 4)
+
+local LoadBtn = Instance.new("TextButton")
+LoadBtn.Size = UDim2.new(0.46, 0, 0, 35)
+LoadBtn.Position = UDim2.new(0.54, 0, 0, 5)
+LoadBtn.BackgroundColor3 = Color3.fromRGB(40, 160, 40)
+LoadBtn.Text = "LOAD CONFIG"
+LoadBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+LoadBtn.Font = Enum.Font.SourceSansBold
+LoadBtn.TextSize = 12
+LoadBtn.Parent = ConfigActionFrame
+Instance.new("UICorner", LoadBtn).CornerRadius = UDim.new(0, 4)
+
+-- Config File Handling System
+local HttpService = game:GetService("HttpService")
+local fileName = "Cero_Aimbot_Config.json"
+
+SaveBtn.MouseButton1Click:Connect(function()
+    local currentSettings = {
+        AimbotEnabled = _G.AimbotEnabled,
+        TeamCheck = _G.TeamCheck,
+        AimPart = _G.AimPart,
+        Smoothness = _G.Smoothness,
+        FOVCircleRadius = _G.FOVCircleRadius,
+        ShowFOV = _G.ShowFOV,
+        ESP_Boxes = _G.ESP_Boxes,
+        ESP_Names = _G.ESP_Names,
+        ESP_Tracers = _G.ESP_Tracers,
+        ESP_Chams = _G.ESP_Chams,
+        ESP_TeamCheck = _G.ESP_TeamCheck,
+        ESP_MaxDistance = _G.ESP_MaxDistance
+    }
+    
+    local success, encoded = pcall(function()
+        return HttpService:JSONEncode(currentSettings)
+    end)
+    
+    if success and writefile then
+        writefile(fileName, encoded)
+        SaveBtn.Text = "SAVED SUCCESS!"
+        task.wait(1.5)
+        SaveBtn.Text = "SAVE CONFIG"
+    else
+        SaveBtn.Text = "SAVE FAILED"
+        task.wait(1.5)
+        SaveBtn.Text = "SAVE CONFIG"
+    end
+end)
+
+LoadBtn.MouseButton1Click:Connect(function()
+    if readfile and isfile and isfile(fileName) then
+        local success, decoded = pcall(function()
+            return HttpService:JSONDecode(readfile(fileName))
+        end)
+        
+        if success then
+            -- Safely unpack settings back into states
+            _G.AimbotEnabled = decoded.AimbotEnabled or false
+            _G.TeamCheck = decoded.TeamCheck or false
+            _G.AimPart = decoded.AimPart or "Head"
+            _G.Smoothness = decoded.Smoothness or 0.15
+            _G.FOVCircleRadius = decoded.FOVCircleRadius or 120
+            _G.ShowFOV = decoded.ShowFOV or false
+            _G.ESP_Boxes = decoded.ESP_Boxes or false
+            _G.ESP_Names = decoded.ESP_Names or false
+            _G.ESP_Tracers = decoded.ESP_Tracers or false
+            _G.ESP_Chams = decoded.ESP_Chams or false
+            _G.ESP_TeamCheck = decoded.ESP_TeamCheck or false
+            _G.ESP_MaxDistance = decoded.ESP_MaxDistance or 800
+            
+            LoadBtn.Text = "LOADED SUCCESS!"
+            task.wait(1.5)
+            LoadBtn.Text = "LOAD CONFIG"
+            
+            -- Force user interface display refresh
+            if ScreenGui and game.CoreGui:FindFirstChild("CeroAimAssistUI") then
+                -- Closes and re-opens quickly to visual-refresh the ON/OFF switches
+                MainFrame.Visible = false
+                task.wait(0.1)
+                MainFrame.Visible = true
+            end
+        else
+            LoadBtn.Text = "DECODE ERROR"
+            task.wait(1.5)
+            LoadBtn.Text = "LOAD CONFIG"
+        end
+    else
+        LoadBtn.Text = "NO FILE FOUND"
+        task.wait(1.5)
+        LoadBtn.Text = "LOAD CONFIG"
+    end
+end)
 -- =============================================================================
 -- [ESP GRAPHICS PROCESSING GENERATION AND CORE LIFECYCLES]
 -- =============================================================================
